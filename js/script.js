@@ -118,13 +118,33 @@ function createCharacterCard(character) {
 // загружаем всех персонажей с сервера
 async function loadAllCharacters() {
     try {
-        const response = await fetch('/api/characters');
-        allCharacters = await response.json();
-        filteredCharacters = [...allCharacters]; // Изначально показываем всех
-        console.log('Загружены все персонажи:', allCharacters.length);
+        console.log('Загрузка персонажей...');
+        
+        // Путь к JSON файлу (используем относительный)
+        const response = await fetch('data/characters.json');
+        
+        // Проверяем статус
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Данные получены, структура:', Object.keys(data));
+        
+        // Извлекаем массив персонажей из поля "characters"
+        allCharacters = data.characters || [];
+        filteredCharacters = [...allCharacters]; // Копируем для фильтрации
+        
+        console.log(`Загружены все персонажи: ${allCharacters.length} шт`);
+        console.log('Пример первого персонажа:', allCharacters[0]?.name);
+        
         return allCharacters;
     } catch (error) {
         console.error('Ошибка загрузки персонажей:', error);
+        
+        // На всякий случай, если файл не найден или ошибка
+        allCharacters = [];
+        filteredCharacters = [];
         return [];
     }
 }
@@ -137,7 +157,7 @@ function displayCharacters(resetPagination = true) {
     container.innerHTML = '';
     
     if (resetPagination) {
-        currentRow = 1;
+        charCurrentRow = 1;
     }
     
     // Разбиваем на ряды по 3 карточки
@@ -146,10 +166,10 @@ function displayCharacters(resetPagination = true) {
         rows.push(filteredCharacters.slice(i, i + CARDS_PER_ROW));
     }
     
-    totalRows = rows.length;
+    charTotalRows = rows.length;
     
     // создаем видимые ряды
-    for (let i = 0; i < Math.min(currentRow, rows.length); i++) {
+    for (let i = 0; i < Math.min(charCurrentRow, rows.length); i++) {
         const rowId = `row-${i + 1}`;
         const rowContainer = document.createElement('div');
         rowContainer.className = 'character-row';
@@ -160,24 +180,24 @@ function displayCharacters(resetPagination = true) {
     
     //  "Показать ещё"
     const moreBtn = document.getElementById('more-btn');
-    if (currentRow < totalRows) {
+    if (charCurrentRow < charTotalRows) {
         moreBtn.style.display = 'block';
     } else {
         moreBtn.style.display = 'none';
     }
     
-    console.log(`Показано ${Math.min(currentRow * CARDS_PER_ROW, filteredCharacters.length)} из ${filteredCharacters.length} персонажей, рядов: ${totalRows}, текущий ряд: ${currentRow}`);
+    console.log(`Показано ${Math.min(charCurrentRow * CARDS_PER_ROW, filteredCharacters.length)} из ${filteredCharacters.length} персонажей, рядов: ${charTotalRows}, текущий ряд: ${charCurrentRow}`);
 }
 
 // Показываем следующий ряд
 function showNextRow() {
-    if (currentRow >= totalRows || charIsLoading) return;
+    if (charCurrentRow >= charTotalRows || charIsLoading) return;
     
     charIsLoading = true;
     
     // создаем новый ряд
     const container = document.getElementById('characters-container');
-    const rowId = `row-${currentRow + 1}`;
+    const rowId = `row-${charCurrentRow + 1}`;
     const rowContainer = document.createElement('div');
     rowContainer.className = 'character-row';
     rowContainer.id = rowId;
@@ -185,14 +205,14 @@ function showNextRow() {
     rowContainer.style.transform = 'translateY(20px)';
     
     // Вычисляем какие карточки показывать
-    const startIndex = currentRow * CARDS_PER_ROW;
+    const startIndex = charCurrentRow * CARDS_PER_ROW;
     const endIndex = Math.min(startIndex + CARDS_PER_ROW, filteredCharacters.length);
     const rowCharacters = filteredCharacters.slice(startIndex, endIndex);
     
     rowContainer.innerHTML = rowCharacters.map(createCharacterCard).join('');
     container.appendChild(rowContainer);
     
-    currentRow++;
+    charCurrentRow++;
     
     // Анимация появления
     setTimeout(() => {
@@ -210,7 +230,7 @@ function showNextRow() {
     }, 100);
     
     // Скрываем кнопку если это последний ряд
-    if (currentRow >= totalRows) {
+    if (charCurrentRow >= charTotalRows) {
         document.getElementById('more-btn').style.display = 'none';
     }
     
@@ -233,9 +253,9 @@ function handleCategoryClick(category) {
     const categoryItem = document.querySelector(`.categories__item[data-category="${category}"]`);
     
     // Проверяем: если уже активна эта категория - сбрасываем фильтр
-    if (currentFilter === category) {
+    if (charCurrentFilter === category) {
         // Сбрасываем фильтр
-        currentFilter = null;
+        charCurrentFilter = null;
         categoryItem.classList.remove('active');
         filteredCharacters = [...allCharacters];
         console.log('Фильтр сброшен, показываем всех');

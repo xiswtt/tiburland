@@ -169,6 +169,44 @@ function displayCharacters(resetPagination = true) {
     charTotalRows = rows.length;
     
     // создаем видимые ряды
+// Показываем персонажей на странице (только видимые ряды)
+function displayCharacters(resetPagination = true) {
+    const container = document.getElementById('characters-container');
+    
+    if (!container) {
+        console.error('Контейнер персонажей не найден!');
+        return;
+    }
+    
+    // Всегда сбрасываем контейнер
+    container.innerHTML = '';
+    
+    if (resetPagination) {
+        charCurrentRow = 1;
+    }
+    
+    // Разбиваем на ряды по 3 карточки
+    const rows = [];
+    for (let i = 0; i < filteredCharacters.length; i += CARDS_PER_ROW) {
+        rows.push(filteredCharacters.slice(i, i + CARDS_PER_ROW));
+    }
+    
+    charTotalRows = rows.length;
+    
+    // Если нет персонажей
+    if (filteredCharacters.length === 0) {
+        container.innerHTML = `
+            <div class="character-row" id="row-1">
+                <div style="width: 100%; text-align: center; padding: 50px">
+                    Персонажи не найдены
+                </div>
+            </div>
+        `;
+        document.getElementById('more-btn').style.display = 'none';
+        return;
+    }
+    
+    // Создаем видимые ряды
     for (let i = 0; i < Math.min(charCurrentRow, rows.length); i++) {
         const rowId = `row-${i + 1}`;
         const rowContainer = document.createElement('div');
@@ -178,15 +216,15 @@ function displayCharacters(resetPagination = true) {
         container.appendChild(rowContainer);
     }
     
-    //  "Показать ещё"
+    // "Показать ещё"
     const moreBtn = document.getElementById('more-btn');
-    if (charCurrentRow < charTotalRows) {
+    if (charCurrentRow < charTotalRows && filteredCharacters.length > 0) {
         moreBtn.style.display = 'block';
     } else {
         moreBtn.style.display = 'none';
     }
     
-    console.log(`Показано ${Math.min(charCurrentRow * CARDS_PER_ROW, filteredCharacters.length)} из ${filteredCharacters.length} персонажей, рядов: ${charTotalRows}, текущий ряд: ${charCurrentRow}`);
+    console.log(`Показано ${Math.min(charCurrentRow * CARDS_PER_ROW, filteredCharacters.length)} из ${filteredCharacters.length} персонажей`);
 }
 
 // Показываем следующий ряд
@@ -249,8 +287,14 @@ function filterCharacters(category) {
 }
 
 // обработчик клика по категории
+// обработчик клика по категории
 function handleCategoryClick(category) {
     const categoryItem = document.querySelector(`.categories__item[data-category="${category}"]`);
+    
+    if (!categoryItem) {
+        console.error('Категория не найдена:', category);
+        return;
+    }
     
     // Проверяем: если уже активна эта категория - сбрасываем фильтр
     if (charCurrentFilter === category) {
@@ -261,7 +305,7 @@ function handleCategoryClick(category) {
         console.log('Фильтр сброшен, показываем всех');
     } else {
         // Устанавливаем новый фильтр
-        currentFilter = category;
+        charCurrentFilter = category;
         
         // Снимаем активный класс со всех
         document.querySelectorAll('.categories__item').forEach(item => {
@@ -281,9 +325,13 @@ function handleCategoryClick(category) {
     
     // Прокручиваем к персонажам
     setTimeout(() => {
-        document.getElementById('characters').scrollIntoView({ 
-            behavior: 'smooth' 
-        });
+        const charactersSection = document.getElementById('characters');
+        if (charactersSection) {
+            charactersSection.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
     }, 300);
 }
 

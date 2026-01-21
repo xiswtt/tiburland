@@ -27,8 +27,67 @@ function initHeaderNavigation() {
         return;
     }
     
-    // ... остальной код навигации без изменений ...
-    // (оставьте ваш код навигации как был)
+    // Поиск секции превью - пробуем разные селекторы
+    const previewSection = document.querySelector('.preview') || 
+                          document.querySelector('#preview-character') ||
+                          document.querySelector('.preview-character') ||
+                          document.querySelector('.preview-section') ||
+                          document.querySelector('section:first-of-type');
+    
+    if (!previewSection) {
+        console.error('Не найдена секция превью');
+        return;
+    }
+    
+    console.log('Найдена секция превью:', previewSection);
+
+    // ссылка для логотипа (если еще не создана)
+    if (!logo.parentNode.matches('a')) {
+        const logoLink = document.createElement('a');
+        logoLink.href = '#';
+        logoLink.style.display = 'block';
+        logoLink.style.cursor = 'pointer';
+        
+        // Сохраняем родительский элемент
+        const parent = logo.parentNode;
+        parent.insertBefore(logoLink, logo);
+        logoLink.appendChild(logo);
+        
+        logoLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+    
+    // изменение хедера при скролле
+    function updateHeader() {
+        const scrollPosition = window.scrollY || window.pageYOffset;
+        const sectionHeight = previewSection.offsetHeight;
+        
+        if (scrollPosition > sectionHeight / 2) {
+            logo.style.transform = 'scale(0.7)';
+            logo.style.transition = 'transform 0.3s ease';
+            header.style.padding = '3px 139px';
+            header.style.transition = 'padding 0.3s ease';
+        } else {
+            logo.style.transform = 'scale(1.0)';
+            logo.style.transition = 'transform 0.3s ease';
+            header.style.padding = '23px 139px';
+            header.style.transition = 'padding 0.3s ease';
+        }
+    }
+    
+    // Инициализируем при загрузке
+    updateHeader();
+    
+    // Обновляем при скролле
+    window.addEventListener('scroll', updateHeader);
+    
+    // Обновляем при изменении размера окна
+    window.addEventListener('resize', updateHeader);
 }
 
 // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
@@ -40,22 +99,69 @@ let charCurrentFilter = null;
 let allCharacters = [];
 let filteredCharacters = [];
 
+
 function createCharacterCard(character) {
-    // ... оставьте вашу функцию без изменений ...
+    return `
+        <div class="card-item" data-category="${character.category}">
+            <img src="${character.image}" alt="${character.name}" />
+            
+            <div class="card-text">
+                <h3>${character.name}</h3>
+                <small>Создатель: ${character.author}</small>
+                <p>${character.description ? character.description.substring(0, 100) + (character.description.length > 100 ? '...' : '') : 'Нет описания'}</p>
+                
+                <div class="character-link">
+                    <a href="character-page.html?id=${character.id}">Подробнее</a>
+                    <svg width="21" height="15" viewBox="0 0 21 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.7071 8.07106C21.0976 7.68054 21.0976 7.04737 20.7071 6.65685L14.3431 0.292885C13.9526 -0.0976396 13.3195 -0.0976396 12.9289 0.292885C12.5384 0.683409 12.5384 1.31657 12.9289 1.7071L18.5858 7.36395L12.9289 13.0208C12.5384 13.4113 12.5384 14.0445 12.9289 14.435C13.3195 14.8255 13.9526 14.8255 14.3431 14.435L20.7071 8.07106ZM0 7.36395V8.36395H20V7.36395V6.36395H0V7.36395Z" 
+                              fill="#3F9AAE"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
 
 async function loadAllCharacters() {
     try {
+        console.log('=== НАЧИНАЕМ ЗАГРУЗКУ ПЕРСОНАЖЕЙ ===');
+        
+        // Пробуем загрузить файл
         const response = await fetch('data/characters.json');
-        const data = await response.json();
+        console.log('Статус ответа:', response.status, response.ok);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const text = await response.text();
+        console.log('Получен текст, длина:', text.length, 'символов');
+        console.log('Первые 200 символов:', text.substring(0, 200));
+        
+        // Парсим JSON
+        const data = JSON.parse(text);
+        console.log('JSON успешно распарсен');
+        console.log('Ключи в данных:', Object.keys(data));
+        
+        // Извлекаем персонажей
         allCharacters = data.characters || [];
-        filteredCharacters = [...allCharacters];
         console.log('Загружено персонажей:', allCharacters.length);
+        
+        // Проверяем первого персонажа
+        if (allCharacters.length > 0) {
+            console.log('Первый персонаж:', allCharacters[0].name);
+            console.log('Его image URL:', allCharacters[0].image);
+        }
+        
+        filteredCharacters = [...allCharacters];
+        
         return allCharacters;
     } catch (error) {
-        console.error('Ошибка загрузки:', error);
+        console.error('ОШИБКА загрузки персонажей:', error);
+        console.error('Стек ошибки:', error.stack);
+        
         allCharacters = [];
         filteredCharacters = [];
         return [];
@@ -63,10 +169,12 @@ async function loadAllCharacters() {
 }
 
 function displayCharacters(resetPagination = true) {
-    const container = document.getElementById('characters-container');
+    console.log('=== ОТОБРАЖЕНИЕ ПЕРСОНАЖЕЙ ===');
+    console.log('filteredCharacters.length:', filteredCharacters.length);
     
+    const container = document.getElementById('characters-container');
     if (!container) {
-        console.log('Контейнер персонажей не найден');
+        console.error('Контейнер персонажей не найден!');
         return;
     }
     
@@ -77,7 +185,13 @@ function displayCharacters(resetPagination = true) {
     }
     
     if (filteredCharacters.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 50px;">Нет персонажей для отображения</div>';
+        container.innerHTML = `
+            <div class="character-row" id="row-1">
+                <div style="width: 100%; text-align: center; padding: 50px; color: #666;">
+                    ❌ Персонажи не загружены или пустые
+                </div>
+            </div>
+        `;
         document.getElementById('more-btn').style.display = 'none';
         return;
     }
@@ -88,19 +202,27 @@ function displayCharacters(resetPagination = true) {
     }
     
     charTotalRows = rows.length;
+    console.log('Создано рядов:', charTotalRows);
     
     for (let i = 0; i < Math.min(charCurrentRow, rows.length); i++) {
         const rowContainer = document.createElement('div');
         rowContainer.className = 'character-row';
         rowContainer.id = `row-${i + 1}`;
-        rowContainer.innerHTML = rows[i].map(createCharacterCard).join('');
+        
+        const rowCharacters = rows[i];
+        console.log(`Ряд ${i + 1}: ${rowCharacters.length} персонажей`);
+        
+        rowContainer.innerHTML = rowCharacters.map(createCharacterCard).join('');
         container.appendChild(rowContainer);
     }
     
     const moreBtn = document.getElementById('more-btn');
     if (moreBtn) {
         moreBtn.style.display = charCurrentRow < charTotalRows ? 'block' : 'none';
+        console.log('Кнопка "Показать ещё":', moreBtn.style.display);
     }
+    
+    console.log('=== ОТОБРАЖЕНИЕ ЗАВЕРШЕНО ===');
 }
 
 function showNextRow() {
@@ -170,13 +292,22 @@ function handleCategoryClick(category) {
 }
 
 async function initCharacters() {
-    console.log('Начинаем инициализацию персонажей...');
+    console.log('=== НАЧИНАЕМ ИНИЦИАЛИЗАЦИЮ ПЕРСОНАЖЕЙ ===');
     
     const container = document.getElementById('characters-container');
     if (!container) {
-        console.log('Контейнер персонажей не найден (возможно не та страница)');
+        console.error('Контейнер персонажей не найден!');
         return;
     }
+    
+    // Показываем сообщение о загрузке
+    container.innerHTML = `
+        <div class="character-row" id="row-1">
+            <div style="width: 100%; text-align: center; padding: 50px;">
+                ⏳ Загрузка персонажей...
+            </div>
+        </div>
+    `;
     
     await loadAllCharacters();
     displayCharacters();
@@ -197,71 +328,5 @@ async function initCharacters() {
         });
     });
     
-    console.log('Персонажи инициализированы успешно!');
+    console.log('=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===');
 }
-
-// ТЕСТОВАЯ ФУНКЦИЯ - покажет карточки прямо на странице
-function testDisplayCharacters() {
-    console.log('=== ТЕСТОВЫЙ ВЫВОД ===');
-    
-    // Используем тестовые данные если основные не работают
-    const testCharacters = [
-        {
-            id: 999,
-            name: "ТЕСТОВЫЙ ПЕРСОНАЖ",
-            author: "Test Author",
-            image: "https://via.placeholder.com/300x200/3F9AAE/FFFFFF?text=TEST+IMAGE",
-            description: "Это тестовый персонаж чтобы проверить отображение",
-            category: "test"
-        },
-        {
-            id: 1000,
-            name: "ВТОРОЙ ТЕСТ",
-            author: "Another Author",
-            image: "https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=SAMPLE+2",
-            description: "Еще один тестовый персонаж",
-            category: "test"
-        }
-    ];
-    
-    const container = document.getElementById('characters-container');
-    if (!container) {
-        console.error('Контейнер не найден!');
-        // Создаем контейнер
-        const newContainer = document.createElement('div');
-        newContainer.id = 'characters-container';
-        newContainer.style.border = '3px solid red';
-        newContainer.style.padding = '20px';
-        newContainer.style.margin = '20px';
-        document.body.appendChild(newContainer);
-        
-        newContainer.innerHTML = testCharacters.map(char => `
-            <div style="border: 2px solid blue; padding: 10px; margin: 10px; display: inline-block;">
-                <h3>${char.name}</h3>
-                <img src="${char.image}" width="300" height="200" />
-                <p>${char.description}</p>
-            </div>
-        `).join('');
-        
-        console.log('Тестовые карточки добавлены');
-        return;
-    }
-    
-    container.innerHTML = testCharacters.map(char => `
-        <div class="character-row">
-            <div class="card-item">
-                <h3 style="color: red;">${char.name}</h3>
-                <img src="${char.image}" width="300" />
-                <p>${char.description}</p>
-            </div>
-        </div>
-    `).join('');
-    
-    console.log('Тестовые данные отображены');
-}
-
-// Вызовите эту функцию для проверки
-setTimeout(() => {
-    console.log('Запускаю тест...');
-    testDisplayCharacters();
-}, 1000);

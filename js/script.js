@@ -199,3 +199,69 @@ async function initCharacters() {
     
     console.log('Персонажи инициализированы успешно!');
 }
+
+// ТЕСТОВАЯ ФУНКЦИЯ - покажет карточки прямо на странице
+function testDisplayCharacters() {
+    console.log('=== ТЕСТОВЫЙ ВЫВОД ===');
+    
+    // Используем тестовые данные если основные не работают
+    const testCharacters = [
+        {
+            id: 999,
+            name: "ТЕСТОВЫЙ ПЕРСОНАЖ",
+            author: "Test Author",
+            image: "https://via.placeholder.com/300x200/3F9AAE/FFFFFF?text=TEST+IMAGE",
+            description: "Это тестовый персонаж чтобы проверить отображение",
+            category: "test"
+        },
+        {
+            id: 1000,
+            name: "ВТОРОЙ ТЕСТ",
+            author: "Another Author",
+            image: "https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=SAMPLE+2",
+            description: "Еще один тестовый персонаж",
+            category: "test"
+        }
+    ];
+    
+    const container = document.getElementById('characters-container');
+    if (!container) {
+        console.error('Контейнер не найден!');
+        // Создаем контейнер
+        const newContainer = document.createElement('div');
+        newContainer.id = 'characters-container';
+        newContainer.style.border = '3px solid red';
+        newContainer.style.padding = '20px';
+        newContainer.style.margin = '20px';
+        document.body.appendChild(newContainer);
+        
+        newContainer.innerHTML = testCharacters.map(char => `
+            <div style="border: 2px solid blue; padding: 10px; margin: 10px; display: inline-block;">
+                <h3>${char.name}</h3>
+                <img src="${char.image}" width="300" height="200" />
+                <p>${char.description}</p>
+            </div>
+        `).join('');
+        
+        console.log('Тестовые карточки добавлены');
+        return;
+    }
+    
+    container.innerHTML = testCharacters.map(char => `
+        <div class="character-row">
+            <div class="card-item">
+                <h3 style="color: red;">${char.name}</h3>
+                <img src="${char.image}" width="300" />
+                <p>${char.description}</p>
+            </div>
+        </div>
+    `).join('');
+    
+    console.log('Тестовые данные отображены');
+}
+
+// Вызовите эту функцию для проверки
+setTimeout(() => {
+    console.log('Запускаю тест...');
+    testDisplayCharacters();
+}, 1000);
